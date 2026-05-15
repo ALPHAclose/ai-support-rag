@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment
+.env
+venv/
+
+# Vector DB
+vectordb/
+
+# HuggingFace cache
+.cache/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
