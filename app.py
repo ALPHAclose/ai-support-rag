@@ -1,4 +1,5 @@
 import streamlit as st
+import json
 
 from dotenv import load_dotenv
 
@@ -9,7 +10,9 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 
 load_dotenv()
 
-# Page config
+# -----------------------------------
+# Page Config
+# -----------------------------------
 st.set_page_config(
     page_title="AI Support Assistant",
     page_icon="🤖",
@@ -17,25 +20,46 @@ st.set_page_config(
 )
 
 st.title("🤖 AI Support Assistant")
-
 st.markdown("Ask questions from uploaded documents")
 
 DB_PATH = "vectordb"
 
-# Load embeddings
-embeddings = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
 
-# Load database
-db = Chroma(
-    persist_directory=DB_PATH,
-    embedding_function=embeddings
-)
+# -----------------------------------
+# Session State
+# -----------------------------------
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-retriever = db.as_retriever(search_kwargs={"k": 3})
+if "show_ticket_form" not in st.session_state:
+    st.session_state.show_ticket_form = False
 
-# Load LLM
+
+# -----------------------------------
+# Create Ticket Function
+# -----------------------------------
+def create_ticket(name, email, issue):
+
+    ticket = {
+        "name": name,
+        "email": email,
+        "issue": issue
+    }
+
+    with open("tickets.json", "r") as file:
+        tickets = json.load(file)
+
+    tickets.append(ticket)
+
+    with open("tickets.json", "w") as file:
+        json.dump(tickets, file, indent=4)
+
+    return "✅ Support ticket created successfully!"
+
+
+# -----------------------------------
+# Load RAG
+# -----------------------------------
 @st.cache_resource
 def load_rag():
 
@@ -59,21 +83,24 @@ def load_rag():
 
 retriever, llm = load_rag()
 
-# Chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
 
-# Display previous messages
+# -----------------------------------
+# Display Chat History
+# -----------------------------------
 for message in st.session_state.messages:
+
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# User input
+
+# -----------------------------------
+# User Input
+# -----------------------------------
 question = st.chat_input("Ask your question")
+
 
 if question:
 
-    # Store user message
     st.session_state.messages.append({
         "role": "user",
         "content": question
@@ -82,7 +109,6 @@ if question:
     with st.chat_message("user"):
         st.markdown(question)
 
-    # Retrieve docs
     docs = retriever.invoke(question)
 
     context = "\n\n".join([
@@ -95,7 +121,7 @@ You are a helpful AI support assistant.
 
 Answer ONLY using the provided context.
 
-If answer is not found, say:
+If the answer is not found in the documents, say:
 "I could not find this information in the documents."
 
 Context:
@@ -110,15 +136,52 @@ Provide:
 - page number
 """
 
-    response = llm.invoke(prompt)
+    with st.spinner("Thinking..."):
 
-    answer = response.content
+        response = llm.invoke(prompt)
 
-    # Store assistant response
+        answer = response.content
+
     st.session_state.messages.append({
         "role": "assistant",
         "content": answer
     })
 
-    with st.chat_message("assistant"):
-        st.markdown(answer)
+    no_answer = "could not find" in answer.lower()
+
+    if no_answer:
+        st.session_state.show_ticket_form = True
+    else:
+        st.session_state.show_ticket_form = False
+
+    st.rerun()
+
+
+# -----------------------------------
+# Show Ticket Form
+# -----------------------------------
+if st.session_state.show_ticket_form:
+
+    st.warning("Would you like to create a support ticket?")
+
+    with st.form("ticket_form"):
+
+        name = st.text_input("Your Name")
+        email = st.text_input("Your Email")
+        issue = st.text_area("Describe your issue")
+
+        submitted = st.form_submit_button("Create Ticket")
+
+        if submitted:
+
+            if name and email and issue:
+
+                result = create_ticket(name, email, issue)
+
+                st.success(result)
+
+                st.session_state.show_ticket_form = False
+
+            else:
+
+                st.error("Please fill all fields.")
