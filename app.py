@@ -22,6 +22,22 @@ st.set_page_config(
 st.title("🤖 AI Support Assistant")
 st.markdown("Ask questions from uploaded documents")
 
+with st.sidebar:
+
+    st.header("🏢 Company Info")
+
+    st.write("**Company:** AI Support Assistant")
+    st.write("**Support Email:** support@aiassistant.com")
+    st.write("**Phone:** +998 90 123 45 67")
+    st.write("**Working Hours:** 9 AM - 6 PM")
+
+    st.divider()
+
+    st.write("### 📚 Loaded Documents")
+    st.write("- Toyota Hilux Manual")
+    st.write("- Toyota Multimedia System")
+    st.write("- Linux Command Guide")
+
 DB_PATH = "vectordb"
 
 
@@ -92,6 +108,18 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+
+# -----------------------------------
+# Ticket Counter
+# -----------------------------------
+try:
+    with open("tickets.json", "r") as file:
+        tickets = json.load(file)
+
+    st.info(f"🎫 Total Support Tickets: {len(tickets)}")
+
+except:
+    st.info("🎫 Total Support Tickets: 0")
 
 # -----------------------------------
 # User Input
