@@ -1,3 +1,12 @@
+---
+title: AI Support Assistant
+emoji: 🤖
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+---
+
 # 🤖 AI Support Assistant (RAG)
 
 ## 📌 Project Overview
